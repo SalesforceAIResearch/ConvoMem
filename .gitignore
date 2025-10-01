@@ -1,0 +1,12 @@
+.gradle
+.idea
+local.properties
+build/
+*.jar
+*.tar
+*.zip
+.DS_Store
+dist/
+out/
+*.class
+*.log
