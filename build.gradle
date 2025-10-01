@@ -1,0 +1,382 @@
+plugins {
+    id 'scala'
+    id 'application'
+}
+
+ext {
+    scalaVersion = '2.12.18' // Set your desired Scala version here
+}
+
+mainClassName = 'com.salesforce.crmmembench.evaluation.runners.GenerateAllTestCases'
+
+group 'org.example'
+version '2.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    // Add repository for MCP SDK if needed
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+}
+
+dependencies {
+    implementation platform('com.google.cloud:libraries-bom:26.65.0')
+    // Migrated from google-cloud-vertexai to google-genai
+    // implementation 'com.google.cloud:google-cloud-vertexai'
+    implementation 'com.google.cloud:google-cloud-aiplatform'
+    implementation 'com.anthropic:anthropic-java-vertex:2.2.0'
+    // Import the LangChain4j BOM so all modules stay on 1.1.0
+    implementation platform("dev.langchain4j:langchain4j-bom:1.1.0")
+
+    // Core abstractions (contains ChatLanguageModel)
+    implementation "dev.langchain4j:langchain4j-core"
+
+    // Providers you need
+    implementation "dev.langchain4j:langchain4j-open-ai"
+    implementation "dev.langchain4j:langchain4j-bedrock"
+
+    // AWS SDK v2 – Bedrock client
+    implementation "software.amazon.awssdk:bedrock:2.25.52"
+
+    implementation 'com.google.genai:google-genai:1.10.0'
+    implementation 'io.circe:circe-core_2.12:0.14.9'  // NOTE: Adjust _2.13 to your project's Scala version
+    implementation 'io.circe:circe-generic_2.12:0.14.9'
+    implementation 'io.circe:circe-parser_2.12:0.14.9'
+    implementation "org.scala-lang:scala-library:$scalaVersion"
+
+    testImplementation "org.scalatest:scalatest_2.12:3.2.18"
+    testImplementation "org.junit.platform:junit-platform-launcher:1.10.0"
+    testRuntimeOnly "org.junit.platform:junit-platform-engine:1.10.0"
+    testRuntimeOnly "org.scalatestplus:junit-5-10_2.12:3.2.18.0"
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.747'
+    implementation 'commons-io:commons-io:2.16.1'
+    
+    // HTTP client for MCP communication (SSE support)
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:okhttp-sse:4.12.0'
+    
+    // JSON-RPC support for MCP protocol
+    implementation 'com.github.briandilley.jsonrpc4j:jsonrpc4j:1.6'
+    
+    // HTTP client for mem0 integration
+    implementation 'com.softwaremill.sttp.client3:core_2.12:3.9.0'
+
+}
+
+test {
+    useJUnitPlatform {
+        includeEngines 'scalatest'
+        testLogging {
+            events("passed", "skipped", "failed", "standard_error")
+        }
+    }
+    
+    // Run tests sequentially to avoid conflicts with Docker containers and shared resources
+    maxParallelForks = 1
+    
+    // Ensure test classes are also executed sequentially
+    systemProperties = [
+        'junit.jupiter.execution.parallel.enabled': 'false',
+        'scalatest.parallel.execution': 'false'
+    ]
+    
+    // Give tests more time since they involve Docker operations
+    testLogging {
+        showStandardStreams = false // Set to true for debugging
+        exceptionFormat = 'full'
+    }
+}
+
+task resetMem0(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.memory.mem0.Mem0Reset'
+    description = 'Reset all memories in mem0 server'
+}
+
+task testMem0MultiThread(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.runners.Evaluate2UserFactsEvidenceMem0'
+    description = 'Test mem0 with multiple threads'
+}
+
+task testMem0ConversationTracking(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.TestMem0ConversationTracking'
+    description = 'Test mem0 conversation ID tracking'
+}
+
+task testRetrievalStats(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.TestRetrievalStats'
+    description = 'Test retrieval stats display'
+}
+
+task testRetrievalStatsComplete(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.TestRetrievalStatsComplete'
+    description = 'Test complete retrieval stats display with correct/incorrect breakdown'
+}
+
+task runEvaluate1UserFactsLargeContextCached(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.runners.Evaluate1UserFactsEvidenceLargeContextCached'
+    description = 'Run Evaluate1UserFactsEvidenceLargeContextCached with increased memory'
+    jvmArgs = ['-Xmx4g', '-Xms2g']
+}
+
+task runEvaluate1UserFactsEvidenceMem0(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.runners.Evaluate1UserFactsEvidenceMem0'
+    description = 'Run mem0 evaluation for user facts evidence'
+    jvmArgs = ['-Xmx4g', '-Xms2g']
+}
+
+
+task testAllModels(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.LLM_endpoints.ModelLists'
+    description = 'Test all LLM models for responsiveness'
+}
+
+
+task generateConversations(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.GenerateConversationEvidence'
+    description = 'Generate irrelevant conversations'
+    jvmArgs = ['-Xmx4g', '-Xms2g']
+}
+
+task generateConversationsLimited(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.conversations.GenerateConversationEvidenceLimited'
+    description = 'Generate limited irrelevant conversations for testing'
+    jvmArgs = ['-Xmx2g', '-Xms1g']
+}
+
+task testPersonIdExtraction(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.TestPersonIdExtraction'
+    description = 'Test personId extraction from filenames'
+}
+
+task testGeneratorDevelopment(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.QuickGeneratorTest'
+    description = 'Test evidence generator development utilities'
+}
+
+task runGeneratorDemo(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.QuickGeneratorTest'
+    args = ['demo']
+    description = 'Run a demo of the evidence generator development workflow'
+}
+
+task testInteractiveGenerator(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.TestUserFactsGenerator'
+    description = 'Run interactive evidence generator development tool'
+    standardInput = System.in
+    doFirst {
+        if (project.hasProperty('testArgs')) {
+            args = project.testArgs.split(' ')
+        }
+    }
+}
+
+task testIterativeGenerator(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.IterativeGeneratorDevelopment'
+    description = 'Test iterative generator development workflow'
+    doFirst {
+        if (project.hasProperty('testArgs')) {
+            args = project.testArgs.split(' ')
+        }
+    }
+}
+
+task runUserFactsShort(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.GenerateUserFacts1EvidenceShort'
+    description = 'Run UserFactsEvidenceGenerator in short mode (1 evidence)'
+    jvmArgs = ['-Xmx2g', '-Xms1g']
+}
+
+task runImplicitConnectionShort(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.GenerateImplicitConnection1EvidenceShort'
+    description = 'Run ImplicitConnectionEvidenceGenerator in short mode (1 evidence)'
+    jvmArgs = ['-Xmx2g', '-Xms1g']
+}
+
+task testShortRun(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.TestShortRun'
+    description = 'Test short run functionality'
+}
+
+task quickShortTest(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.QuickShortTest'
+    description = 'Quick test that generates one evidence file'
+}
+
+task minimalTest(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.MinimalTest'
+    description = 'Minimal test to create evidence file'
+}
+
+task testImplicitConnection(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.TestImplicitConnection'
+    description = 'Test implicit connection evidence generator'
+    doFirst {
+        if (project.hasProperty('phase')) {
+            args = [project.phase]
+        }
+    }
+}
+
+task testImplicitSingle(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.TestImplicitSingle'
+    description = 'Generate single implicit connection evidence item'
+}
+
+task quickImplicitTest(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.QuickImplicitTest'
+    description = 'Quick test to create sample implicit connection evidence'
+}
+
+task testTemporalGenerator(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.TestTemporalGenerator'
+    description = 'Test temporal evidence generator'
+}
+
+task temporalShortRunner1(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.TemporalShortRunner1'
+    description = 'Generate short temporal evidence with 1 evidence item'
+}
+
+task temporalShortRunner2(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.TemporalShortRunner2'
+    description = 'Generate short temporal evidence with 2 evidence items'
+}
+
+// Production temporal evidence runners
+task generateTemporal1Evidence(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.GenerateTemporal1Evidence'
+    description = 'Generate temporal evidence with 1 evidence item'
+    jvmArgs = ['-Xmx4g', '-Xms2g']
+}
+
+task generateTemporal2Evidence(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.GenerateTemporal2Evidence'
+    description = 'Generate temporal evidence with 2 evidence items'
+    jvmArgs = ['-Xmx4g', '-Xms2g']
+}
+
+task generateTemporal3Evidence(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.GenerateTemporal3Evidence'
+    description = 'Generate temporal evidence with 3 evidence items'
+    jvmArgs = ['-Xmx4g', '-Xms2g']
+}
+
+task evaluateUserFactsShort(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.runners.Evaluate1UserFactsEvidenceLargeContextShort'
+    description = 'Run short evaluation of user facts evidence (completes in ~2 minutes)'
+    jvmArgs = ['-Xmx2g', '-Xms1g']
+}
+
+task testAppendEvidence(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.generation.TestAppendEvidence'
+    description = 'Test evidence append functionality'
+}
+
+task testAppendShortRunner(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.runners.short.TestAppendShortRunner'
+    description = 'Test append with short evidence generator'
+    jvmArgs = ['-Xmx2g', '-Xms1g']
+}
+
+task testOpenAIUseCaseGeneration(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.test.TestOpenAIUseCaseGeneration'
+    description = 'Test OpenAI model for use case generation'
+}
+
+task testOpenAIFactsUseCaseGeneration(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.test.TestOpenAIFactsUseCaseGeneration'
+    description = 'Test OpenAI gpt-4o for use case generation with UserFactsEvidenceGenerator'
+}
+
+task testBatchedChanges(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.test.TestBatchedChanges'
+    description = 'Test BatchedTestCasesGenerator changes'
+}
+
+task findAndRun(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.util.ClassRunner'
+    description = 'Find and run a class by its simple name'
+    jvmArgs = ['-Xmx4g', '-Xms2g']
+    
+    doFirst {
+        if (!project.hasProperty('className')) {
+            throw new GradleException('Please specify the class name with -PclassName=YourClassName')
+        }
+        
+        def className = project.className
+        def runArgs = project.hasProperty('runArgs') ? project.runArgs.split(' ') : []
+        
+        args = [className] + runArgs
+        
+        // Use JAVA_OPTS if set, otherwise use defaults
+        def javaOpts = System.getenv('JAVA_OPTS')
+        if (javaOpts) {
+            def allJvmArgs = javaOpts.split(' ').toList() + jvmArgs
+            setJvmArgs(allJvmArgs)
+        }
+    }
+}
+task testChangingEvidencePromptFix(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.questions.evidence.TestChangingEvidencePromptFix'
+    description = 'Test changing evidence prompt fix'
+}
+
+task runTokenUsageDemo(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.LLM_endpoints.TokenUsageDemo'
+    description = 'Demonstrate token usage tracking for LLM responses'
+}
+
+task evidenceInventory(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.EvidenceInventory'
+}
+
+task testLocomoData(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.RunLocomoTest'
+    description = 'Test loading of converted Locomo data'
+}
+
+task testLocomoRedesign(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.salesforce.crmmembench.evaluation.TestLocomoRedesign'
+    description = 'Test redesigned Locomo generator implementation'
+}

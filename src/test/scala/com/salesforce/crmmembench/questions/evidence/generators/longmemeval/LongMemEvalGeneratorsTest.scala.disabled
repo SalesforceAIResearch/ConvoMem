@@ -1,0 +1,193 @@
+package com.salesforce.crmmembench.questions.evidence.generators.longmemeval
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+/**
+ * Comprehensive test suite for all LongMemEval generators.
+ * Verifies that converted data can be read correctly and matches expected counts.
+ */
+class LongMemEvalGeneratorsTest extends AnyFlatSpec with Matchers {
+  
+  "LongMemEvalPreferencesGenerator" should "load exactly 30 evidence items" in {
+    val generator = new LongMemEvalPreferencesGenerator()
+    val items = generator.loadEvidenceItems()
+    
+    items.length shouldBe 30
+    
+    // Verify all items have required fields
+    items.foreach { item =>
+      item.question should not be empty
+      item.answer should not be empty
+      item.message_evidences should not be empty
+      item.conversations should not be empty
+      item.personId should not be None
+      item.category should not be empty
+    }
+    
+    // Preferences typically have single session
+    items.foreach { item =>
+      item.conversations.length shouldBe 1
+    }
+  }
+  
+  "LongMemEvalAssistantFactsGenerator" should "load exactly 56 evidence items" in {
+    val generator = new LongMemEvalAssistantFactsGenerator()
+    val items = generator.loadEvidenceItems()
+    
+    items.length shouldBe 56
+    
+    // Verify all items have required fields
+    items.foreach { item =>
+      item.question should not be empty
+      item.answer should not be empty
+      item.message_evidences should not be empty
+      item.conversations should not be empty
+      item.personId should not be None
+    }
+    
+    // Verify at least some messages are from Assistant (since these are assistant facts)
+    items.foreach { item =>
+      val hasAssistantEvidence = item.message_evidences.exists(_.speaker == "Assistant")
+      hasAssistantEvidence shouldBe true
+    }
+  }
+  
+  "LongMemEvalMultiSessionGenerator" should "load exactly 185 evidence items" in {
+    val generator = new LongMemEvalMultiSessionGenerator()
+    val items = generator.loadEvidenceItems()
+    
+    items.length shouldBe 185
+    
+    // Verify mix of single and multi-session items
+    val singleSessionCount = items.count(_.conversations.length == 1)
+    val multiSessionCount = items.count(_.conversations.length > 1)
+    
+    // Based on our conversion, there should be both single and multi-session items
+    singleSessionCount should be > 0
+    multiSessionCount should be > 0
+    
+    // Verify conversation structure
+    items.foreach { item =>
+      item.conversations should not be empty
+      item.conversations.foreach { conv =>
+        conv.messages should not be empty
+        conv.id should not be None
+        conv.containsEvidence should not be None
+      }
+    }
+  }
+  
+  "LongMemEvalKnowledgeUpdateGenerator" should "load exactly 72 evidence items" in {
+    val generator = new LongMemEvalKnowledgeUpdateGenerator()
+    val items = generator.loadEvidenceItems()
+    
+    items.length shouldBe 72
+    
+    // Knowledge updates typically have multiple conversations showing change over time
+    items.foreach { item =>
+      item.conversations.length should be >= 1
+      item.question should not be empty
+      item.answer should not be empty
+    }
+    
+    // Verify that most items have multiple conversations (knowledge updates)
+    val multiConversationItems = items.count(_.conversations.length > 1)
+    multiConversationItems should be > (items.length / 2) // At least half should have multiple
+  }
+  
+  "LongMemEvalAbstentionGenerator" should "load exactly 24 evidence items" in {
+    val generator = new LongMemEvalAbstentionGenerator()
+    val items = generator.loadEvidenceItems()
+    
+    items.length shouldBe 24
+    
+    // Abstention questions should have "I don't know" or similar answers
+    items.foreach { item =>
+      item.question should not be empty
+      item.answer should not be empty
+      // Most abstention answers should indicate uncertainty or negation
+      val lowerAnswer = item.answer.toLowerCase
+      val isAbstentionAnswer = lowerAnswer.contains("don't know") || 
+                               lowerAnswer.contains("not") || 
+                               lowerAnswer.contains("no") ||
+                               lowerAnswer.contains("never") ||
+                               lowerAnswer.contains("unknown") ||
+                               lowerAnswer.length < 50 // Short answers are often abstentions
+      isAbstentionAnswer shouldBe true
+    }
+  }
+  
+  "All LongMemEval generators combined" should "load exactly 367 total evidence items" in {
+    val preferencesGen = new LongMemEvalPreferencesGenerator()
+    val assistantFactsGen = new LongMemEvalAssistantFactsGenerator()
+    val multiSessionGen = new LongMemEvalMultiSessionGenerator()
+    val knowledgeUpdateGen = new LongMemEvalKnowledgeUpdateGenerator()
+    val abstentionGen = new LongMemEvalAbstentionGenerator()
+    
+    val totalItems = 
+      preferencesGen.loadEvidenceItems().length +
+      assistantFactsGen.loadEvidenceItems().length +
+      multiSessionGen.loadEvidenceItems().length +
+      knowledgeUpdateGen.loadEvidenceItems().length +
+      abstentionGen.loadEvidenceItems().length
+    
+    totalItems shouldBe 367 // Total excluding temporal-reasoning
+  }
+  
+  "LongMemEval data structure" should "have valid conversation format" in {
+    val generator = new LongMemEvalMultiSessionGenerator()
+    val items = generator.loadEvidenceItems()
+    
+    items should not be empty
+    
+    // Take a sample item and verify conversation structure
+    val sampleItem = items.head
+    
+    sampleItem.conversations.foreach { conversation =>
+      conversation.messages should not be empty
+      
+      // Verify message structure
+      conversation.messages.foreach { message =>
+        message.speaker should (be("User") or be("Assistant"))
+        message.text should not be empty
+      }
+      
+      // Verify conversation metadata
+      conversation.id should not be None
+      conversation.containsEvidence should not be None
+      conversation.model_name shouldBe Some("longmemeval_import")
+    }
+  }
+  
+  "LongMemEval evidence messages" should "match conversation content" in {
+    val generator = new LongMemEvalMultiSessionGenerator()
+    val items = generator.loadEvidenceItems()
+    
+    // For items with evidence messages, verify they appear in conversations
+    items.filter(_.message_evidences.nonEmpty).take(10).foreach { item =>
+      val evidenceTexts = item.message_evidences.map(_.text)
+      val conversationTexts = item.conversations.flatMap(_.messages.map(_.text))
+      
+      // Each evidence message should appear in at least one conversation
+      evidenceTexts.foreach { evidenceText =>
+        conversationTexts.exists(_.contains(evidenceText)) shouldBe true
+      }
+    }
+  }
+  
+  "LongMemEval generators" should "print statistics without errors" in {
+    val generators = List(
+      new LongMemEvalPreferencesGenerator(),
+      new LongMemEvalAssistantFactsGenerator(),
+      new LongMemEvalMultiSessionGenerator(),
+      new LongMemEvalKnowledgeUpdateGenerator(),
+      new LongMemEvalAbstentionGenerator()
+    )
+    
+    // Each generator should be able to print statistics without throwing exceptions
+    generators.foreach { generator =>
+      noException should be thrownBy generator.printStatistics()
+    }
+  }
+}

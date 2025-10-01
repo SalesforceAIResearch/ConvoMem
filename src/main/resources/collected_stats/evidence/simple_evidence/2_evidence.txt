@@ -1,0 +1,19 @@
+------------------------------------------------------------
+CURRENT EVALUATION STATISTICS
+------------------------------------------------------------
+📊 Isolated (Relevant Only):     491/501  ( 98.0%)
+📊 Irrelevant Baseline:            4/491  (  0.8%)
+📊 Context Dilution Results:
+   └─   2 conversations:      472/491  ( 96.1%)
+   └─   4 conversations:      451/491  ( 91.9%)
+   └─   6 conversations:      441/491  ( 89.8%)
+   └─  10 conversations:      446/491  ( 90.8%)
+   └─  20 conversations:      434/491  ( 88.4%)
+   └─  30 conversations:      445/491  ( 90.6%)
+   └─  50 conversations:      443/491  ( 90.2%)
+   └─  70 conversations:      445/491  ( 90.6%)
+   └─ 100 conversations:      438/491  ( 89.2%)
+   └─ 150 conversations:      423/491  ( 86.2%)
+   └─ 200 conversations:      428/491  ( 87.2%)
+   └─ 300 conversations:      415/490  ( 84.7%)
+------------------------------------------------------------
