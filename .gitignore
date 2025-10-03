@@ -2,7 +2,6 @@
 .idea
 local.properties
 build/
-*.jar
 *.tar
 *.zip
 .DS_Store
@@ -10,3 +9,5 @@ dist/
 out/
 *.class
 *.log
+# Allow gradle wrapper jar
+!gradle/wrapper/gradle-wrapper.jar
