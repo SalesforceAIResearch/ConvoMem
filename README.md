@@ -2,7 +2,6 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Dataset on HF](https://img.shields.io/badge/🤗%20Hugging%20Face-Dataset-yellow)](https://huggingface.co/datasets/Salesforce/ConvoMem)
-[![Paper](https://img.shields.io/badge/Paper-arXiv-red)](https://arxiv.org/abs/XXXX.XXXXX)
 
 A comprehensive benchmark for evaluating conversational memory in large language models, featuring **75,336 question-answer pairs** across six evidence categories. This benchmark enables systematic evaluation of how well AI assistants remember and utilize information from previous conversations.
 
@@ -319,7 +318,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 @article{convomem2025,
   title={ConvoMem: A Comprehensive Benchmark for Conversational Memory},
   author={[Authors]},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
   year={2025}
 }
 ```
@@ -330,7 +328,6 @@ Apache License 2.0 - see [LICENSE](LICENSE) file.
 
 ## 🔗 Resources
 
-- **Paper**: [arXiv:XXXX.XXXXX](https://arxiv.org/abs/XXXX.XXXXX)
 - **Dataset**: [Hugging Face](https://huggingface.co/datasets/Salesforce/ConvoMem)
 - **Documentation**: [Full API Docs](https://salesforce.github.io/CRM_Mem_Bench)
 - **Issues**: [GitHub Issues](https://github.com/salesforce/CRM_Mem_Bench/issues)
