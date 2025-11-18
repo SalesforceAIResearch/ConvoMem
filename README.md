@@ -2,6 +2,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Dataset on HF](https://img.shields.io/badge/🤗%20Hugging%20Face-Dataset-yellow)](https://huggingface.co/datasets/Salesforce/ConvoMem)
+[![Paper on arXiv](https://img.shields.io/badge/arXiv-2511.10523-red.svg)](https://arxiv.org/abs/2511.10523)
 
 A comprehensive benchmark for evaluating conversational memory in large language models, featuring **75,336 question-answer pairs** across six evidence categories. This benchmark enables systematic evaluation of how well AI assistants remember and utilize information from previous conversations.
 
@@ -328,6 +329,7 @@ Apache License 2.0 - see [LICENSE](LICENSE) file.
 
 ## 🔗 Resources
 
+- **Paper**: [ConvoMem Benchmark: Why Your First 150 Conversations Don't Need RAG](https://arxiv.org/abs/2511.10523)
 - **Dataset**: [Hugging Face](https://huggingface.co/datasets/Salesforce/ConvoMem)
 - **Documentation**: [Full API Docs](https://salesforce.github.io/CRM_Mem_Bench)
 - **Issues**: [GitHub Issues](https://github.com/salesforce/CRM_Mem_Bench/issues)
